@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Group 14 NFT MarketPlace</title>
+
+<style>
+body{margin:0;font-family:Arial;background:#0d1421;color:white;}
+header{display:flex;justify-content:space-between;align-items:center;padding:15px 40px;background:#141b2d;}
+.logo{font-size:22px;font-weight:bold;color:#2081e2;}
+.nav{display:flex;gap:20px;align-items:center;}
+.nav div{cursor:pointer;}
+.nav div:hover{color:#2081e2;}
+button{background:#2081e2;border:none;padding:8px 14px;color:white;border-radius:6px;cursor:pointer;}
+button:hover{opacity:.85;}
+input{padding:8px;margin:6px 0;width:100%;border-radius:6px;border:none;}
+.container{padding:30px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;}
+.card{background:#1a2335;border-radius:12px;overflow:hidden;}
+.card img{width:100%;height:200px;object-fit:cover;}
+.card-content{padding:15px;}
+.hidden{display:none;}
+.cart-count{background:red;border-radius:50%;padding:2px 7px;font-size:12px;}
+.box{background:#1a2335;padding:20px;border-radius:12px;max-width:500px;}
+table{width:100%;background:#1a2335;border-radius:10px;padding:10px;}
+th,td{padding:10px;text-align:left;}
+</style>
+</head>
+<body>
+
+<header>
+<div class="logo">Group 14 NFT MarketPlace</div>
+<div id="navBar" class="nav hidden">
+<div onclick="showMarketplace()">Marketplace</div>
+<div onclick="showCart()">Cart <span id="cartCount" class="cart-count">0</span></div>
+<div id="adminTab" class="hidden" onclick="showAdmin()">Developer</div>
+<div id="salesTab" class="hidden" onclick="showSales()">Sales</div>
+<div onclick="showAccount()">Account</div>
+<div onclick="logout()">Logout</div>
+</div>
+</header>
+
+<div class="container">
+
+<div id="loginBox" class="box">
+<h2>Developer Login</h2>
+<input id="username" placeholder="Enter Developer Name">
+<input id="password" type="password" placeholder="Enter Password">
+<button onclick="login()">Developer Login</button>
+<br><br>
+<button onclick="enterMarketplace()">Continue as Guest</button>
+</div>
+
+<div id="marketplace" class="hidden">
+<h2>Marketplace</h2>
+<input placeholder="Search NFT..." id="search" onkeyup="loadNFTs()">
+<div class="grid" id="nftGrid"></div>
+</div>
+
+<div id="adminPanel" class="hidden">
+<h2>Developer Panel</h2>
+<div class="box">
+<input id="name" placeholder="NFT Name">
+<input id="creator" placeholder="Creator">
+<input id="price" placeholder="Price">
+<input id="currency" placeholder="Currency">
+<input id="image" placeholder="Image URL">
+<button onclick="saveNFT()">Save NFT</button>
+</div>
+<h3>All NFTs</h3>
+<div class="grid" id="adminGrid"></div>
+</div>
+
+<div id="cartSection" class="hidden">
+<h2>Shopping Cart</h2>
+<div id="cartItems"></div>
+<br>
+<button onclick="showCheckout()">Proceed to Checkout</button>
+</div>
+
+<div id="checkoutSection" class="hidden">
+<h2>M‑Pesa Checkout</h2>
+<div class="box">
+<label>Enter M‑Pesa Phone Number</label>
+<input id="mpesaPhone" placeholder="2547XXXXXXXX">
+<button onclick="completePayment()">Pay with M‑Pesa</button>
+</div>
+</div>
+
+<div id="salesPanel" class="hidden">
+<h2>Sales Dashboard</h2>
+<table>
+<thead>
+<tr>
+<th>User</th>
+<th>NFT</th>
+<th>Creator</th>
+<th>Price</th>
+<th>Payment</th>
+<th>Date</th>
+</tr>
+</thead>
+<tbody id="salesTable"></tbody>
+</table>
+</div>
+
+<div id="accountSection" class="hidden">
+<h2>Account Information</h2>
+<div class="box">
+<p><strong>Username:</strong> <span id="accName"></span></p>
+<p><strong>Role:</strong> <span id="accRole"></span></p>
+</div>
+</div>
+
+</div>
+
+<script>
+
+const DEVELOPER_PASSWORD="admin123";
+
+let nfts=JSON.parse(localStorage.getItem("nfts"))||[];
+let cart=[];
+let editId=null;
+let currentUser=null;
+let currentRole=null;
+
+function saveData(){localStorage.setItem("nfts",JSON.stringify(nfts));}
+
+function enterMarketplace(){
+currentUser="Guest";
+currentRole="customer";
+document.getElementById("loginBox").classList.add("hidden");
+document.getElementById("navBar").classList.remove("hidden");
+document.getElementById("marketplace").classList.remove("hidden");
+document.getElementById("accName").innerText="Guest";
+document.getElementById("accRole").innerText="Customer";
+loadNFTs();
+loadCart();
+}
+
+function login(){
+let username=document.getElementById("username").value;
+let password=document.getElementById("password").value;
+if(password!==DEVELOPER_PASSWORD){alert("Incorrect password");return;}
+currentUser=username;
+currentRole="developer";
+document.getElementById("loginBox").classList.add("hidden");
+document.getElementById("navBar").classList.remove("hidden");
+document.getElementById("marketplace").classList.remove("hidden");
+document.getElementById("adminTab").classList.remove("hidden");
+document.getElementById("salesTab").classList.remove("hidden");
+document.querySelector('[onclick="showCart()"]').classList.add("hidden");
+document.getElementById("accName").innerText=username;
+document.getElementById("accRole").innerText="Developer";
+loadAdmin();
+loadNFTs();
+}
+
+function logout(){location.reload();}
+
+function hideAll(){["marketplace","adminPanel","cartSection","checkoutSection","accountSection","salesPanel"].forEach(id=>document.getElementById(id).classList.add("hidden"));}
+
+function showMarketplace(){hideAll();document.getElementById("marketplace").classList.remove("hidden");loadCart();}
+function showAdmin(){hideAll();document.getElementById("adminPanel").classList.remove("hidden");loadAdmin();}
+function showCart(){hideAll();document.getElementById("cartSection").classList.remove("hidden");loadCart();}
+function showCheckout(){hideAll();document.getElementById("checkoutSection").classList.remove("hidden");}
+function showAccount(){hideAll();document.getElementById("accountSection").classList.remove("hidden");}
+
+function showSales(){
+hideAll();
+document.getElementById("salesPanel").classList.remove("hidden");
+fetch("load_sales.php").then(r=>r.json()).then(data=>{
+let table=document.getElementById("salesTable");
+table.innerHTML="";
+data.forEach(s=>{
+table.innerHTML+=`<tr><td>${s.user}</td><td>${s.nft_name}</td><td>${s.creator}</td><td>${s.price} ${s.currency}</td><td>${s.paid_via}</td><td>${s.date}</td></tr>`;
+});
+});
+}
+
+function loadNFTs(){
+let grid=document.getElementById("nftGrid");
+grid.innerHTML="";
+let search=document.getElementById("search").value?.toLowerCase()||"";
+nfts.filter(n=>n.name.toLowerCase().includes(search)).forEach(n=>{
+grid.innerHTML+=`<div class="card"><img src="${n.image}"><div class="card-content"><h3>${n.name}</h3><p>${n.creator}</p><p>${n.price} ${n.currency}</p><button onclick="addToCart(${n.id})">Add to Cart</button></div></div>`;
+});
+}
+
+function loadAdmin(){
+let grid=document.getElementById("adminGrid");
+grid.innerHTML="";
+nfts.forEach(n=>{
+grid.innerHTML+=`<div class="card"><img src="${n.image}"><div class="card-content"><h3>${n.name}</h3><p>${n.creator}</p><p>${n.price} ${n.currency}</p><button onclick="editNFT(${n.id})">Edit</button><button onclick="deleteNFT(${n.id})">Delete</button></div></div>`;
+});
+}
+
+function saveNFT(){
+let name=name.value,creator=creator.value,price=price.value,currency=currency.value,image=image.value;
+if(editId){let nft=nfts.find(n=>n.id===editId);Object.assign(nft,{name,creator,price,currency,image});editId=null;}else{nfts.push({id:Date.now(),name,creator,price,currency,image});}
+saveData();loadAdmin();loadNFTs();
+}
+
+function editNFT(id){
+let nft=nfts.find(n=>n.id===id);
+name.value=nft.name;creator.value=nft.creator;price.value=nft.price;currency.value=nft.currency;image.value=nft.image;editId=id;
+}
+
+function deleteNFT(id){nfts=nfts.filter(n=>n.id!==id);saveData();loadAdmin();loadNFTs();}
+
+function addToCart(id){
+if(currentRole==="developer"){alert("Developers cannot purchase NFTs");return;}
+let nft=nfts.find(n=>n.id===id);
+cart.push(nft);
+document.getElementById("cartCount").innerText=cart.length;
+fetch("save_cart.php",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:`user=${currentUser}&nft_name=${encodeURIComponent(nft.name)}&creator=${encodeURIComponent(nft.creator)}&price=${nft.price}&currency=${nft.currency}`});
+}
+
+function loadCart(){
+fetch(`load_cart.php?user=${currentUser}`).then(r=>r.json()).then(data=>{
+let box=document.getElementById("cartItems");
+box.innerHTML="";
+let total=0;
+data.forEach(n=>{box.innerHTML+=`<p>${n.nft_name} - ${n.price} ${n.currency}</p>`;total+=parseFloat(n.price)||0;});
+box.innerHTML+=`<hr><h3>Total Price: ${total}</h3>`;
+});
+}
+
+function completePayment(){
+let phone=document.getElementById("mpesaPhone").value;
+if(!phone){alert("Enter M‑Pesa phone number");return;}
+
+fetch(`load_cart.php?user=${currentUser}`).then(r=>r.json()).then(data=>{
+
+let total=0;
+data.forEach(i=>{total+=parseFloat(i.price)||0;});
+
+fetch("mpesa_stk.php",{
+method:"POST",
+headers:{"Content-Type":"application/x-www-form-urlencoded"},
+body:`phone=${phone}&amount=${total}&user=${currentUser}`
+})
+.then(r=>r.json())
+.then(res=>{
+
+if(res.success){
+alert("STK Push sent. Check your phone and enter PIN to complete payment.");
+
+setTimeout(()=>{
+fetch("clear_cart.php",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:`user=${currentUser}`});
+
+document.getElementById("cartCount").innerText=0;
+showMarketplace();
+},8000);
+
+}else{
+alert("Payment request failed");
+}
+
+});
+
+});
+}
+
+</script>
+
+</body>
+</html>
