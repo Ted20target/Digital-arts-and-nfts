@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -64,7 +65,7 @@ th,td{padding:10px;text-align:left;}
 <input id="creator" placeholder="Creator">
 <input id="price" placeholder="Price">
 <input id="currency" placeholder="Currency">
-<input id="image" placeholder="Image URL">
+<input type="file" id="imageFile" accept="image/*">
 <button onclick="saveNFT()">Save NFT</button>
 </div>
 <h3>All NFTs</h3>
@@ -196,8 +197,50 @@ grid.innerHTML+=`<div class="card"><img src="${n.image}"><div class="card-conten
 }
 
 function saveNFT(){
-let name=name.value,creator=creator.value,price=price.value,currency=currency.value,image=image.value;
-if(editId){let nft=nfts.find(n=>n.id===editId);Object.assign(nft,{name,creator,price,currency,image});editId=null;}else{nfts.push({id:Date.now(),name,creator,price,currency,image});}
+
+let name=document.getElementById("name").value;
+let creator=document.getElementById("creator").value;
+let price=document.getElementById("price").value;
+let currency=document.getElementById("currency").value;
+
+let file=document.getElementById("imageFile").files[0];
+
+if(!file){
+alert("Please upload an image for the NFT");
+return;
+}
+
+let reader=new FileReader();
+
+reader.onload=function(e){
+
+let image=e.target.result;
+
+if(editId){
+let nft=nfts.find(n=>n.id===editId);
+Object.assign(nft,{name,creator,price,currency,image});
+editId=null;
+}else{
+
+nfts.push({
+id:Date.now(),
+name,
+creator,
+price,
+currency,
+image
+});
+
+}
+
+saveData();
+loadAdmin();
+loadNFTs();
+
+};
+
+reader.readAsDataURL(file);
+
 saveData();loadAdmin();loadNFTs();
 }
 
